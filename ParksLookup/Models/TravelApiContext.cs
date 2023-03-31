@@ -4,7 +4,7 @@ using ParksLookupApi.Models;
 
 namespace ParksLookupApi.Models
 {
-  public class ParksLookupApiContext : IdentityDbContext<ApplicationUser>
+  public class ParksLookupApiContext : IdentityDbContext
   {
     public DbSet<Park> Parks { get; set; }
     public DbSet<Review> Reviews { get; set; }

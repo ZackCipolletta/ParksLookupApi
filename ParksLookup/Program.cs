@@ -13,7 +13,8 @@ ConfigurationManager configuration = builder.Configuration;
 // Add services to the container.
 
 // For Entity Framework
-builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(configuration.GetConnectionString("ConnStr")));
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseMySql(configuration.GetConnectionString("ConnStr"),
+    new MySqlServerVersion(new Version(8, 0, 26))));
 
 // For Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
@@ -22,20 +23,7 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
 
 // Adding Authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options =>
-{
-    options.SaveToken = true;
-    options.RequireHttpsMetadata = false;
-    options.TokenValidationParameters = new TokenValidationParameters()
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidAudience = "https://www.yogihosting.com",
-        ValidIssuer = "https://www.yogihosting.com",
-        ClockSkew = TimeSpan.Zero,// It forces tokens to expire exactly at token expiration time instead of 5 minutes later
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperWeinerMan5000"))
-    };
-})
+
 .AddJwtBearer(options =>
 {
     options.SaveToken = true;
@@ -55,16 +43,10 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<ParksLookupApiContext>(
-    dbContextOptions => dbContextOptions.UseMySql(
-        builder.Configuration["ConnectionStrings:DefaultConnection"],
-        ServerVersion.AutoDetect(builder.Configuration["ConnectionStrings:DefaultConnection"])
-    ) 
+builder.Services.AddDbContext<ParksLookupApiContext>(options =>
+    options.UseMySql(configuration.GetConnectionString("ConnStr"),
+        new MySqlServerVersion(new Version(8, 0, 26)))
 );
-
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<ParksLookupApiContext>()
-    .AddDefaultTokenProviders();
 
 var app = builder.Build();
 
