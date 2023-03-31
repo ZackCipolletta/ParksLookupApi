@@ -39,7 +39,7 @@ namespace ParksLookupApi.Controllers
 
       if (name != null)
       {
-        query = query.Where(entry => entry.Name == name);
+        query = query.Where(entry => entry.Name.Contains(name));
       }
 
       if (search == "random")
