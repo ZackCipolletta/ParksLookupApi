@@ -23,7 +23,7 @@ namespace ParksLookupApi.Controllers
 
     // GET api/parks
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Park>>> Get(string type, string location, string search)
+    public async Task<ActionResult<IEnumerable<Park>>> Get(string type, string location, string name, string search)
     {
       IQueryable<Park> query = _db.Parks.Include(park => park.Reviews).AsQueryable();
 
@@ -35,6 +35,11 @@ namespace ParksLookupApi.Controllers
       if (location != null)
       {
         query = query.Where(entry => entry.Location == location);
+      }
+
+      if (name != null)
+      {
+        query = query.Where(entry => entry.Name == name);
       }
 
       if (search == "random")

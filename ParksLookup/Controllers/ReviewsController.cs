@@ -74,12 +74,12 @@ public async Task<IActionResult> Put(int id, Review review)
         return NotFound();
     }
 
-    if (existingReview.user_name != review.user_name)
+    if (existingReview.userName != review.userName)
     {
         return BadRequest("User name does not match.");
     }
 
-    // Update only the title and description, not the user_name
+    // Update only the title and description, not the userName
     existingReview.Title = review.Title;
     existingReview.Description = review.Description;
 

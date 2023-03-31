@@ -10,6 +10,7 @@ namespace ParksLookupApi.Models
     public int ParkId { get; set; }
     public string Type { get; set; }
     public string Location { get; set; }
+    public string Name { get; set; }
     public virtual List<Review> Reviews { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
