@@ -2,10 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using ParksLookupApi.Models;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 namespace ParksLookupApi.Controllers
 {

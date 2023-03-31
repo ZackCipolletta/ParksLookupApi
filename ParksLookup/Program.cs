@@ -7,8 +7,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
-
+var configuration = builder.Configuration;
 // Add JwtService to services collection
+builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
+
 builder.Services.AddScoped<ParksLookup.Services.JwtService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -20,10 +22,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
   {
     ValidateIssuer = true,
     ValidateAudience = true,
-    ValidAudience = "https://www.yogihosting.com",
-    ValidIssuer = "https://www.yogihosting.com",
-    ClockSkew = TimeSpan.Zero,// It forces tokens to expire exactly at token expiration time instead of 5 minutes later
-    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes("SuperWeinerMan5000"))
+    ValidateLifetime = true,
+    ValidateIssuerSigningKey = true,
+    ValidAudience = configuration["Jwt:Audience"],
+    ValidIssuer = configuration["Jwt:Issuer"],
+    IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(configuration["Jwt:Key"])
+            )
   };
 });
 
