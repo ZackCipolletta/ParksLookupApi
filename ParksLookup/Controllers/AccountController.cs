@@ -11,69 +11,36 @@ namespace ParksLookupApi.Controllers
   [ApiController]
   public class AccountController : ControllerBase
   {
-    private readonly ParksLookupApiContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly JwtService _jwtService;
-    private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ParksLookupApiContext db, JwtService jwtService)
+
+    public AccountController(UserManager<ApplicationUser> userManager, JwtService jwtService)
     {
       _userManager = userManager;
-      _signInManager = signInManager;
       _jwtService = jwtService;
-      _db = db;
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterViewModel model)
+    [HttpPost]
+    public async Task<ActionResult<ApplicationUser>> PostUser(ApplicationUser applicationUser)
     {
       if (!ModelState.IsValid)
       {
         return BadRequest(ModelState);
       }
 
-      ApplicationUser user = new ApplicationUser { UserName = model.UserName };
-      IdentityResult result = await _userManager.CreateAsync(user, model.Password);
+      var result = await _userManager.CreateAsync(
+          applicationUser,
+          applicationUser.PasswordHash
+      );
 
-      if (result.Succeeded)
+      if (!result.Succeeded)
       {
-        return Ok();
-      }
-      else
-      {
-        foreach (IdentityError error in result.Errors)
-        {
-          ModelState.AddModelError("", error.Description);
-        }
-        return BadRequest(ModelState);
-      }
-    }
-
-    [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginViewModel model)
-    {
-      if (!ModelState.IsValid)
-      {
-        return BadRequest(ModelState);
+        return BadRequest(result.Errors);
       }
 
-      Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, isPersistent: true, lockoutOnFailure: false);
-      if (result.Succeeded)
-      {
-        return Ok();
-      }
-      else
-      {
-        ModelState.AddModelError("", "There is something wrong with your email or username. Please try again.");
-        return BadRequest(ModelState);
-      }
-    }
-
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout()
-    {
-      await _signInManager.SignOutAsync();
-      return Ok();
+      applicationUser.PasswordHash = null;
+      return CreatedAtAction("GetUser", new { username = applicationUser.UserName }, applicationUser);
     }
 
     // POST: api/Account/BearerToken
