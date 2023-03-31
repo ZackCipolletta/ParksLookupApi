@@ -9,7 +9,7 @@ using System;
 
 namespace ParksLookupApi.Controllers
 {
-  // [Authorize]
+  [Authorize]
   [Route("api/[controller]")]
   [ApiController]
   public class ParksController : ControllerBase
@@ -90,7 +90,7 @@ namespace ParksLookupApi.Controllers
 
 
     // PUT: api/Parks/5
-    [HttpPut("parks/{id}")]
+    [HttpPut("{id}")]
     public async Task<IActionResult> Put(int id, Park park)
     {
       if (id != park.ParkId)
