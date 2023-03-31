@@ -4,12 +4,12 @@ using System.Collections.Generic;
 
 namespace ParksLookupApi.Models
 {
-  public class Destination
+  public class Park
   {
 
-    public int DestinationId { get; set; }
-    public string Country { get; set; }
-    public string City { get; set; }
+    public int ParkId { get; set; }
+    public string Type { get; set; }
+    public string Location { get; set; }
     public virtual List<Review> Reviews { get; set; }
 
     [DatabaseGenerated(DatabaseGeneratedOption.Computed)]

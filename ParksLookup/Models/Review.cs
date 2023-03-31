@@ -7,14 +7,14 @@ namespace ParksLookupApi.Models
   {
 
     public int ReviewId { get; set; }
-    [ForeignKey("Destination")]
-    public int DestinationId { get; set; }
+    [ForeignKey("Park")]
+    public int ParkId { get; set; }
     
     [StringLength(120)]
     public string Title { get; set; }
     public string Description { get; set; }
     [Required]
-    public string user_name { get; set; }
+    public string UserName { get; set; }
   }
 }
 
