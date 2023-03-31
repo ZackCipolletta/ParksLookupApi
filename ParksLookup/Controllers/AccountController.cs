@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ParksLookupApi.Models;
 using ParksLookupApi.ViewModels;
+using ParksLookup.Services;
 
 namespace ParksLookupApi.Controllers
 {
@@ -13,12 +14,14 @@ namespace ParksLookupApi.Controllers
   {
     private readonly ParksLookupApiContext _db;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly JwtService _jwtService;
     private readonly SignInManager<ApplicationUser> _signInManager;
 
-    public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ParksLookupApiContext db)
+    public AccountController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, ParksLookupApiContext db, JwtService jwtService)
     {
       _userManager = userManager;
       _signInManager = signInManager;
+      _jwtService = jwtService;
       _db = db;
     }
 
@@ -73,5 +76,33 @@ namespace ParksLookupApi.Controllers
       await _signInManager.SignOutAsync();
       return Ok();
     }
+
+    // // POST: api/Users/BearerToken
+    // [HttpPost("BearerToken")]
+    // public async Task<ActionResult<AuthenticationResponse>> CreateBearerToken(AuthenticationRequest request)
+    // {
+    //   if (!ModelState.IsValid)
+    //   {
+    //     return BadRequest("Bad credentials");
+    //   }
+
+    //   var user = await _userManager.FindByNameAsync(request.UserName);
+
+    //   if (user == null)
+    //   {
+    //     return BadRequest("Bad credentials");
+    //   }
+
+    //   var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+
+    //   if (!isPasswordValid)
+    //   {
+    //     return BadRequest("Bad credentials");
+    //   }
+
+    //   var token = _jwtService.CreateToken(user);
+
+    //   return Ok(token);
+    // }
   }
 }
