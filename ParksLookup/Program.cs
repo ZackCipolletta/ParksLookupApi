@@ -14,7 +14,7 @@ ConfigurationManager configuration = builder.Configuration;
 
 // For Entity Framework
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseMySql(configuration.GetConnectionString("ConnStr"),
-    new MySqlServerVersion(new Version(8, 0, 26))));
+    new MySqlServerVersion(new Version(8, 0, 32))));
 
 // For Identity
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
@@ -45,7 +45,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContext<ParksLookupApiContext>(options =>
     options.UseMySql(configuration.GetConnectionString("ConnStr"),
-        new MySqlServerVersion(new Version(8, 0, 26)))
+        new MySqlServerVersion(new Version(8, 0, 32)))
 );
 
 var app = builder.Build();
