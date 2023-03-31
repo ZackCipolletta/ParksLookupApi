@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
+
 namespace ParksLookup
 {
   public class AuthenticationRequest
