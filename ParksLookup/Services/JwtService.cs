@@ -55,7 +55,7 @@ namespace ParksLookup.Services
                 new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
                 new Claim(ClaimTypes.NameIdentifier, user.Id),
                 new Claim(ClaimTypes.Name, user.UserName),
-                new Claim(ClaimTypes.Email, user.Email)
+                // new Claim(ClaimTypes.Email, user.Email)
         };
 
     private SigningCredentials CreateSigningCredentials() =>

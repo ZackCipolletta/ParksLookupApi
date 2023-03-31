@@ -1,19 +1,15 @@
 using System.Text;
 using ParksLookupApi.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.Text.Json.Serialization;
-using ParksLookupApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add JwtService to services collection
-builder.Services.AddScoped<Services.JwtService>();
+builder.Services.AddScoped<ParksLookup.Services.JwtService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 .AddJwtBearer(options =>
