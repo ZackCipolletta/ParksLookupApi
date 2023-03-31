@@ -11,7 +11,7 @@ namespace ParksLookup.Services
 {
   public class JwtService
   {
-    private const int EXPIRATION_MINUTES = 1;
+    private const int EXPIRATION_MINUTES = 2;
 
     private readonly IConfiguration _configuration;
 
