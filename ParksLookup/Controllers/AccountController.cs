@@ -1,22 +1,25 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using ParksLookupApi.Models;
 using ParksLookup.Services;
 
-namespace ParksLookup.Controllers
+using Microsoft.AspNetCore.Authorization;
+using ParksLookup;
+
+namespace ParksLookupApi.Controllers
 {
   [Route("api/[controller]")]
   [ApiController]
   public class UsersController : ControllerBase
   {
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly JwtService _jwtService;
 
-    public UsersController(UserManager<ApplicationUser> userManager, JwtService jwtService)
+    public UsersController(UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager, JwtService jwtService)
     {
       _userManager = userManager;
+      _signInManager = signInManager;
       _jwtService = jwtService;
     }
 
@@ -60,52 +63,26 @@ namespace ParksLookup.Controllers
         Email = user.Email
       };
     }
-    // _______________________________________________________________________________________________________________
-    [HttpPost("BearerToken")]
-    public async Task<ActionResult<AuthenticationResponse>> CreateBearerToken(AuthenticationRequest request)
-    {
-      var response = await CreateAuthToken(request, user => _jwtService.CreateToken(user));
-      return Ok(response);
-    }
-    private async Task<ApplicationUser> Authenticate(AuthenticationRequest request)
-    {
-      if (!ModelState.IsValid)
-      {
-        return null;
-      }
 
-      var user = await _userManager.FindByNameAsync(request.userName);
-
+    [AllowAnonymous]
+    [HttpPost("authenticate")]
+    public async Task<IActionResult> Authenticate([FromBody] AuthenticationRequest model)
+    {
+      var user = await _userManager.FindByNameAsync(model.userName);
       if (user == null)
       {
-        return null;
+        return BadRequest(new { message = "Username or password is incorrect" });
       }
 
-      var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-
-      if (!isPasswordValid)
+      var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+      if (!result.Succeeded)
       {
-        return null;
+        return BadRequest(new { message = "Username or password is incorrect" });
       }
 
-      return user;
-    }
+      var token = _jwtService.CreateToken(user);
 
-    private async Task<ActionResult<AuthenticationResponse>> CreateAuthToken(
-        AuthenticationRequest request,
-        Func<ApplicationUser, Task<string>> createToken)
-    {
-      var user = await Authenticate(request);
-
-      if (user == null)
-      {
-        return Unauthorized();
-      }
-
-      var token = await createToken(user);
-      var expiration = _jwtService.GetExpiration();
-
-      return new AuthenticationResponse { Token = token, Expiration = expiration };
+      return Ok(new AuthenticationResponse { Token = token, Expiration = _jwtService.GetExpiration() });
     }
   }
 }

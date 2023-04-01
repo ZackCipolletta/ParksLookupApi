@@ -1,18 +1,12 @@
-using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using ParksLookup;
+using ParksLookupApi.Models;
 
 namespace ParksLookup.Services
 {
   public class JwtService
   {
-    private const int EXPIRATION_MINUTES = 2;
-
     private readonly IConfiguration _configuration;
 
     public JwtService(IConfiguration configuration)
@@ -20,50 +14,31 @@ namespace ParksLookup.Services
       _configuration = configuration;
     }
 
-    public AuthenticationResponse CreateToken(IdentityUser user)
+    public string CreateToken(ApplicationUser user)
     {
-      var expiration = DateTime.UtcNow.AddMinutes(EXPIRATION_MINUTES);
-
-      var token = CreateJwtToken(
-          CreateClaims(user),
-          CreateSigningCredentials(),
-          expiration
-      );
-
       var tokenHandler = new JwtSecurityTokenHandler();
-
-      return new AuthenticationResponse
+      var key = System.Text.Encoding.ASCII.GetBytes(_configuration["Jwt:Secret"]);
+      var tokenDescriptor = new SecurityTokenDescriptor
       {
-        Token = tokenHandler.WriteToken(token),
-        Expiration = expiration
+        Subject = new ClaimsIdentity(new[]
+        {
+          new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
+          new Claim(JwtRegisteredClaimNames.Email, user.Email),
+          new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        }),
+        Expires = GetExpiration(),
+        SigningCredentials = new SigningCredentials(
+          new SymmetricSecurityKey(key),
+          SecurityAlgorithms.HmacSha256Signature
+        )
       };
+      var token = tokenHandler.CreateToken(tokenDescriptor);
+      return tokenHandler.WriteToken(token);
     }
 
-    private JwtSecurityToken CreateJwtToken(Claim[] claims, SigningCredentials credentials, DateTime expiration) =>
-        new JwtSecurityToken(
-            _configuration["Jwt:Issuer"],
-            _configuration["Jwt:Audience"],
-            claims,
-            expires: expiration,
-            signingCredentials: credentials
-        );
-
-    private Claim[] CreateClaims(IdentityUser user) =>
-        new[] {
-                new Claim(JwtRegisteredClaimNames.Sub, _configuration["Jwt:Subject"]),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTime.UtcNow.ToString()),
-                new Claim(ClaimTypes.NameIdentifier, user.Id),
-                new Claim(ClaimTypes.Name, user.UserName),
-                // new Claim(ClaimTypes.Email, user.Email)
-        };
-
-    private SigningCredentials CreateSigningCredentials() =>
-        new SigningCredentials(
-            new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_configuration["Jwt:Key"])
-            ),
-            SecurityAlgorithms.HmacSha256
-        );
+    public DateTime GetExpiration()
+    {
+      return DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Jwt:ExpirationInMinutes"]));
+    }
   }
 }
