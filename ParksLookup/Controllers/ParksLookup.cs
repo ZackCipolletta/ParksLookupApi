@@ -2,14 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using ParksLookupApi.Models;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 namespace ParksLookupApi.Controllers
 {
-  [Authorize]
+  // [Authorize]
   [Route("api/[controller]")]
   [ApiController]
   public class ParksController : ControllerBase
@@ -21,10 +17,14 @@ namespace ParksLookupApi.Controllers
       _db = db;
     }
 
+    [Authorize]
     // GET api/parks
     [HttpGet]
     public async Task<ActionResult<IEnumerable<Park>>> Get(string type, string location, string name, string search)
     {
+      var token = HttpContext.Request.Headers["Authorization"].FirstOrDefault()?.Split(" ").Last();
+      Console.WriteLine($"Token: {token}");
+
       IQueryable<Park> query = _db.Parks.Include(park => park.Reviews).AsQueryable();
 
       if (type != null)

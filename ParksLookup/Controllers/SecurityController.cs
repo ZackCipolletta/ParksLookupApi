@@ -1,82 +1,97 @@
-using System;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
+using ParksLookupApi.Models;
+using Microsoft.AspNetCore.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using ParksLookupApi.Models;
 
 namespace ParksLookupApi.Controllers
 {
-
   [Route("api/[controller]")]
   [ApiController]
   public class SecurityController : ControllerBase
   {
     private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
     private readonly IConfiguration _configuration;
 
-    public SecurityController(UserManager<User> userManager, SignInManager<User> signInManager, IConfiguration configuration)
+    public SecurityController(UserManager<User> userManager, IConfiguration configuration)
     {
       _userManager = userManager;
-      _signInManager = signInManager;
       _configuration = configuration;
     }
 
     [AllowAnonymous]
-    [HttpPost("createToken")]
-    public async Task<IActionResult> CreateToken(User user)
-    {
-      var result = await _signInManager.PasswordSignInAsync(user.UserName, user.Password, false, false);
-
-      if (result.Succeeded)
-      {
-        var issuer = _configuration["Jwt:Issuer"];
-        var audience = _configuration["Jwt:Audience"];
-        var key = Encoding.ASCII.GetBytes(_configuration["Jwt:Key"]);
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-          Subject = new ClaimsIdentity(new[]
-            {
-                        new Claim("Id", Guid.NewGuid().ToString()),
-                        new Claim(JwtRegisteredClaimNames.Sub, user.UserName),
-                        new Claim(JwtRegisteredClaimNames.Email, user.UserName),
-                        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-                    }),
-          Expires = DateTime.UtcNow.AddMinutes(5),
-          Issuer = issuer,
-          Audience = audience,
-          SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha512Signature)
-        };
-
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        var jwtToken = tokenHandler.WriteToken(token);
-
-        return Ok(jwtToken);
-      }
-
-      return Unauthorized();
-    }
-
-    [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<IActionResult> Register(User user)
+    public async Task<IActionResult> Register(UserRegistrationModel userRegistrationModel)
     {
-      var result = await _userManager.CreateAsync(user, user.Password);
-
-      if (result.Succeeded)
+      if (!ModelState.IsValid)
       {
-        return Ok("User created successfully!");
+        return BadRequest(ModelState);
       }
 
-      return BadRequest(result.Errors);
+      var user = new User
+      {
+        UserName = userRegistrationModel.UserName,
+        Email = userRegistrationModel.Email
+      };
+
+      var result = await _userManager.CreateAsync(user, userRegistrationModel.Password);
+
+      if (!result.Succeeded)
+      {
+        return BadRequest(result.Errors);
+      }
+
+      return Ok();
     }
+
+[AllowAnonymous]
+[HttpPost("createToken")]
+public async Task<IActionResult> CreateToken(string username, string password)
+{
+  if (string.IsNullOrEmpty(username))
+  {
+    return BadRequest("Username is required.");
+  }
+
+  var userExists = await _userManager.FindByNameAsync(username);
+
+  if (userExists != null && await _userManager.CheckPasswordAsync(userExists, password))
+  {
+    var authClaims = new List<Claim>
+    {
+        new Claim(JwtRegisteredClaimNames.Sub, username),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+    };
+
+    var secretKey = _configuration["JWT:Key"];
+    if (string.IsNullOrEmpty(secretKey))
+    {
+      return BadRequest("Invalid JWT secret key.");
+    }
+
+    var authSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration["JWT:Key"]));
+
+    var token = new JwtSecurityToken(
+        issuer: _configuration["JWT:ValidIssuer"],
+        audience: _configuration["JWT:ValidAudience"],
+        expires: DateTime.UtcNow.AddHours(1),
+        claims: authClaims,
+        signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+    );
+
+    return Ok(new
+    {
+      token = new JwtSecurityTokenHandler().WriteToken(token),
+      expiration = token.ValidTo
+    });
+  }
+
+  return Unauthorized();
+}
+
+
+
   }
 }

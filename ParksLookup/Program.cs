@@ -8,32 +8,57 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+.AddJwtBearer(options =>
+{
+  options.TokenValidationParameters = new TokenValidationParameters
+  {
+    ValidateIssuerSigningKey = true,
+    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes("ThisIsMySecretKeyForKeepingThingsSafeItIsSupeSuperSecret")),
+    ValidateIssuer = false,
+    ValidateAudience = false,
+    ClockSkew = TimeSpan.Zero,
+    ValidateLifetime = true,
+    LifetimeValidator = (DateTime? notBefore, DateTime? expires, SecurityToken token, TokenValidationParameters parameters) =>
     {
-      options.TokenValidationParameters = new TokenValidationParameters
+      if (expires != null && expires <= DateTime.UtcNow)
       {
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = false,
-        ValidateIssuerSigningKey = true
-      };
-    });
-
+        return false; // token is expired
+      }
+      return true;
+    }
+  };
+  options.Events = new JwtBearerEvents
+  {
+    OnAuthenticationFailed = context =>
+    {
+      if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+      {
+        context.Response.Headers.Add("Token-Expired", "true");
+      }
+      return Task.CompletedTask;
+    },
+    OnChallenge = context =>
+    {
+      if (context.AuthenticateFailure != null)
+      {
+        context.Response.Headers.Add("Token-Expired", "true");
+      }
+      return Task.CompletedTask;
+    }
+  };
+});
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<ParksLookupApiContext>(
-    dbContextOptions => dbContextOptions.UseMySql(
-        builder.Configuration["ConnectionStrings:DefaultConnection"],
-        ServerVersion.AutoDetect(builder.Configuration["ConnectionStrings:DefaultConnection"])
-    )
+dbContextOptions => dbContextOptions.UseMySql(
+builder.Configuration["ConnectionStrings:DefaultConnection"],
+ServerVersion.AutoDetect(builder.Configuration["ConnectionStrings:DefaultConnection"])
+)
 );
 
 builder.Services.AddIdentity<User, IdentityRole>()
-    .AddEntityFrameworkStores<ParksLookupApiContext>()
-    .AddDefaultTokenProviders();
+.AddEntityFrameworkStores<ParksLookupApiContext>()
+.AddDefaultTokenProviders();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
