@@ -56,12 +56,7 @@ namespace ParksLookupApi.Controllers
         park.ReviewCount = park.Reviews?.Count() ?? 0;
       }
 
-      if (search == "popular")
-      {
-        parks = parks.OrderByDescending(parks => parks.ReviewCount).ToList();
-      }
-
-      return parks;
+        return parks;
     }
 
 
