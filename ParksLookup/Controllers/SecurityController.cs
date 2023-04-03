@@ -5,6 +5,9 @@ using Microsoft.AspNetCore.Authorization;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.Extensions.Configuration;
+using ParksLookupApi.ViewModels;
 
 namespace ParksLookupApi.Controllers
 {
@@ -21,77 +24,70 @@ namespace ParksLookupApi.Controllers
       _configuration = configuration;
     }
 
-    [AllowAnonymous]
-    [HttpPost("register")]
-    public async Task<IActionResult> Register(UserRegistrationModel userRegistrationModel)
-    {
-      if (!ModelState.IsValid)
-      {
-        return BadRequest(ModelState);
-      }
+    [HttpPost("createUser")]
 
+    public async Task<ActionResult> CreateUser([FromBody] UserRegistrationModel model)
+    {
       var user = new User
       {
-        UserName = userRegistrationModel.UserName,
-        Email = userRegistrationModel.Email
+        Email = model.Email,
+        UserName = model.UserName
       };
 
-      var result = await _userManager.CreateAsync(user, userRegistrationModel.Password);
+      var result = await _userManager.CreateAsync(user, model.Password);
 
       if (!result.Succeeded)
       {
-        return BadRequest(result.Errors);
+        return BadRequest(new { message = "User creation failed", errors = result.Errors });
       }
 
-      return Ok();
+      return Ok(new { message = "User created successfully" });
     }
 
-[AllowAnonymous]
-[HttpPost("createToken")]
-public async Task<IActionResult> CreateToken(string username, string password)
-{
-  if (string.IsNullOrEmpty(username))
-  {
-    return BadRequest("Username is required.");
-  }
-
-  var userExists = await _userManager.FindByNameAsync(username);
-
-  if (userExists != null && await _userManager.CheckPasswordAsync(userExists, password))
-  {
-    var authClaims = new List<Claim>
+    [AllowAnonymous]
+    [HttpPost("createToken")]
+    public async Task<ActionResult<string>> CreateToken([FromBody] LoginViewModel login)
     {
-        new Claim(JwtRegisteredClaimNames.Sub, username),
-        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+      var user = await _userManager.FindByNameAsync(login.UserName);
+
+      if (string.IsNullOrEmpty(login.UserName))
+      {
+        return BadRequest("Username cannot be null or empty.");
+      }
+
+      if (user == null)
+      {
+        return Unauthorized(new { message = "Invalid username or password" });
+      }
+
+      var isPasswordValid = await _userManager.CheckPasswordAsync(user, login.Password);
+
+      if (!isPasswordValid)
+      {
+        return Unauthorized(new { message = "Invalid username or password" });
+      }
+
+      var authClaims = new List<Claim>
+    {
+        new Claim(JwtRegisteredClaimNames.Sub, login.UserName),
+        new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
     };
 
-    var secretKey = _configuration["JWT:Key"];
-    if (string.IsNullOrEmpty(secretKey))
-    {
-      return BadRequest("Invalid JWT secret key.");
+      var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Key"]));
+
+      var token = new JwtSecurityToken(
+          issuer: _configuration["JWT:ValidIssuer"],
+          audience: _configuration["JWT:ValidAudience"],
+          expires: DateTime.UtcNow.AddHours(1),
+          claims: authClaims,
+          signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+      );
+
+      var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+      return Ok(tokenString);
     }
 
-    var authSigningKey = new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(_configuration["JWT:Key"]));
-
-    var token = new JwtSecurityToken(
-        issuer: _configuration["JWT:ValidIssuer"],
-        audience: _configuration["JWT:ValidAudience"],
-        expires: DateTime.UtcNow.AddHours(1),
-        claims: authClaims,
-        signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
-    );
-
-    return Ok(new
-    {
-      token = new JwtSecurityTokenHandler().WriteToken(token),
-      expiration = token.ValidTo
-    });
   }
 
-  return Unauthorized();
-}
-
-
-
-  }
 }

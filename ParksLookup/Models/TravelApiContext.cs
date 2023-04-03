@@ -19,4 +19,15 @@ namespace ParksLookupApi.Models
       // Configure your model here
     }
   }
+
+  public static class ParksLookupApiContextFactory
+  {
+    public static ParksLookupApiContext CreateDbContext(string[] args)
+    {
+      var optionsBuilder = new DbContextOptionsBuilder<ParksLookupApiContext>();
+      optionsBuilder.UseMySql("Server=localhost;Port=3306;database=ParksLookup;uid=root;pwd=epicodus", new MySqlServerVersion(new Version(8, 0, 26)));
+
+      return new ParksLookupApiContext(optionsBuilder.Options);
+    }
+  }
 }
